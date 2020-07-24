@@ -1,0 +1,4 @@
+rasterio
+torch~=1.5.1
+setuptools~=49.2.0
+numpy~=1.19.1
