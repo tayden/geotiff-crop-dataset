@@ -6,7 +6,7 @@ Description: A Pytorch Dataloader for tif image files that dynamically crops the
 """
 
 import itertools
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Any
 
 import numpy as np
 import rasterio
@@ -39,17 +39,36 @@ class CropDataset(Dataset):
         self.stride = stride if stride is not None else crop_size
 
         self.raster = rasterio.open(img_path, 'r')
-        self.fill_value = fill_value if fill_value is not None else self.raster.nodata
+
+        if fill_value is not None:
+            self.fill_value = fill_value
+        elif hasattr(self.raster, "nodata"):
+            self.fill_value = self.raster.nodata
+        else:
+            self.fill_value = 0
+
         self.transform = transform
 
         _y0s = range(0, self.raster.height, self.stride)
         _x0s = range(0, self.raster.width, self.stride)
         self._y0x0s = list(itertools.product(_y0s, _x0s))
 
+    @property
+    def y0x0(self):
+        return self._y0x0s
+
+    @property
+    def y0(self):
+        return list(np.array(self._y0x0s)[0, :])
+
+    @property
+    def x0(self):
+        return list(np.array(self._y0x0s)[1, :])
+
     def __len__(self) -> int:
         return len(self._y0x0s)
 
-    def __getitem__(self, idx: int) -> np.ndarray:
+    def __getitem__(self, idx: int) -> Union[np.ndarray, Any]:
         y0, x0 = self._y0x0s[idx]
 
         # Read the image section

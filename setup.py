@@ -1,13 +1,13 @@
 from setuptools import setup
 
 setup(
-    name='pytorch-crop-dataset',
-    version='0.0.1',
-    packages=['pytorch_crop_dataset'],
+    name='geotiff-crop-dataset',
+    version='0.0.1rc1',
+    packages=['geotiff_crop_dataset'],
     url='https://github.com/tayden/pytorch_crop_dataset',
     install_requires=[
         'rasterio',
-        'torch',
+        'torch>=1.5',
         'numpy'
     ],
     license='MIT',
