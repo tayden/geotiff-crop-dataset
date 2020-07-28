@@ -18,11 +18,11 @@ class Dataset(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __getitem__(self, index):
+    def __getitem__(self, idx):
         raise NotImplementedError
 
 
-class CropDataset(Dataset):
+class CropDatasetReader(Dataset):
     def __init__(self, img_path: str, crop_size: int, padding: Optional[int] = 0, stride: Optional[int] = None,
                  fill_value: Optional[Union[int, float]] = None, transform: Optional[Callable] = None):
         """A Pytorch data loader that returns cropped segments of a tif image file.
@@ -92,3 +92,64 @@ class CropDataset(Dataset):
             crop = self.transform(crop)
 
         return crop
+
+
+class CropDatasetWriter(object):
+    def __init__(self, img_path: str, crop_size: int, height: int, width: int, driver: str = 'GTiff',
+                 num_bands: int = 1, dtype=rasterio.float32, crs: str = None, geo_transform=None):
+        super().__init__()
+
+        self.img_path = img_path
+
+        self.crop_size = crop_size
+        self.height = height
+        self.width = width
+
+        self.raster = rasterio.open(
+            img_path,
+            'w',
+            driver=driver,
+            height=height,
+            width=width,
+            count=num_bands,
+            dtype=dtype,
+            crs=crs,
+            transform=geo_transform,
+        )
+
+        _y0s = range(0, self.raster.height, self.crop_size)
+        _x0s = range(0, self.raster.width, self.crop_size)
+        self._y0x0s = list(itertools.product(_y0s, _x0s))
+
+    @classmethod
+    def from_reader(cls, img_path: str, crop_size: int, r: CropDatasetReader):
+        """Create a CropDatasetWriter using a CropDatasetReader instance to define the geo-referencing, cropping, and
+            size parameters.
+
+        :param img_path: str
+            Path to the file you want to create.
+        :param crop_size: int
+            The size of the cropped section to be written.
+        :param r: CropDatasetReader
+            An instance of a CropDatasetReader from which to copy geo-referencing parameters.
+        :return:
+            CropDatasetWriter instance
+        """
+        return cls(img_path, crop_size=crop_size, height=r.raster.height, width=r.raster.width,
+                   driver=r.raster.driver, num_bands=r.raster.count, dtype=r.raster.dtype, crs=r.raster.crs,
+                   geo_transform=r.raster.transform)
+
+    def __setitem__(self, idx: int, value):
+        y0, x0 = self._y0x0s[idx]
+
+        # Read the image section
+        window = ((y0, y0 + self.crop_size),
+                  (x0, x0 + self.crop_size))
+
+        self.raster.write(value, window=window)
+
+    def close(self):
+        self.raster.close()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
