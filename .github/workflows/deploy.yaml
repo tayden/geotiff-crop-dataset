@@ -15,7 +15,7 @@ jobs:
           python-version: '3.x'
       - name: Install dependencies
         run: |
-          python -m pip instasll --upgrade pip
+          python -m pip install --upgrade pip
           pip install setuptools wheel twine
       - name: Build and Publish
         env:
