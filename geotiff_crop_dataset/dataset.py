@@ -90,10 +90,9 @@ class CropDatasetReader(Dataset):
         crop = crop.filled(self.fill_value)
 
         if len(crop.shape) == 3:
-            if crop.shape[0] >= 3:
-                crop = np.moveaxis(crop, 0, 2)  # (c, h, w) => (h, w, c)
-            elif crop.shape[0] == 1:
-                crop = np.squeeze(crop, axis=0)  # (c, h, w) => (h, w)
+            crop = np.moveaxis(crop, 0, 2)  # (c, h, w) => (h, w, c)
+            if crop.shape[2] == 1:
+                crop = np.squeeze(crop, axis=2)  # (h, w, c) => (h, w)
 
         if self.transform:
             crop = self.transform(crop)

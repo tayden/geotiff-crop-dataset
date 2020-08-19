@@ -3,7 +3,7 @@ import rasterio
 import torch
 from torchvision import transforms
 
-from geotiff_crop_dataset import CropDatasetReader
+from geotiff_crop_dataset.dataset import CropDatasetReader
 
 
 def _create_simple_1band_img(tmpdir):
