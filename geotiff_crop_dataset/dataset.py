@@ -7,8 +7,9 @@ Description: A Pytorch Dataloader for tif image files that dynamically crops the
 
 import itertools
 from abc import ABC, abstractmethod
-from typing import Union, Callable, Optional, Any
+from typing import Any, Callable, Optional, Union
 
+import numpy as np
 import rasterio
 
 
@@ -88,34 +89,25 @@ class CropDatasetReader(Dataset):
         # Fill nodata values
         crop = crop.filled(self.fill_value)
 
+        if len(crop.shape) == 3:
+            if crop.shape[0] >= 3:
+                crop = np.moveaxis(crop, 0, 2)  # (c, h, w) => (h, w, c)
+            elif crop.shape[0] == 1:
+                crop = np.squeeze(crop, axis=0)  # (c, h, w) => (h, w)
+
         if self.transform:
             crop = self.transform(crop)
 
         return crop
 
 
-class CropDatasetWriter(object):
-    def __init__(self, img_path: str, crop_size: int, height: int, width: int, driver: str = 'GTiff',
-                 num_bands: int = 1, dtype=rasterio.float32, crs: str = None, geo_transform=None):
+class CropDatasetWriter:
+    def __init__(self, img_path: str, crop_size: int, profile: dict):
         super().__init__()
 
         self.img_path = img_path
-
         self.crop_size = crop_size
-        self.height = height
-        self.width = width
-
-        self.raster = rasterio.open(
-            img_path,
-            'w',
-            driver=driver,
-            height=height,
-            width=width,
-            count=num_bands,
-            dtype=dtype,
-            crs=crs,
-            transform=geo_transform,
-        )
+        self.raster = rasterio.open(img_path, 'w', **profile)
 
         _y0s = range(0, self.raster.height, self.crop_size)
         _x0s = range(0, self.raster.width, self.crop_size)
@@ -135,21 +127,22 @@ class CropDatasetWriter(object):
         :return:
             CropDatasetWriter instance
         """
-        return cls(img_path, crop_size=crop_size, height=r.raster.height, width=r.raster.width,
-                   driver=r.raster.driver, num_bands=r.raster.count, dtype=r.raster.dtype, crs=r.raster.crs,
-                   geo_transform=r.raster.transform)
+        return cls(img_path, crop_size=crop_size, profile=r.raster.profile)
 
     def __setitem__(self, idx: int, value):
         y0, x0 = self._y0x0s[idx]
 
         # Read the image section
-        window = ((y0, y0 + self.crop_size),
-                  (x0, x0 + self.crop_size))
+        window = ((y0, min(y0 + self.crop_size, self.raster.height)),
+                  (x0, min(x0 + self.crop_size, self.raster.width)))
 
-        self.raster.write(value, window=window)
+        self.raster.write(value[:, :self.raster.height, :self.raster.width], window=window)
 
     def close(self):
         self.raster.close()
+
+    def __enter__(self):
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
