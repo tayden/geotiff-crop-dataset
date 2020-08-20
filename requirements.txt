@@ -1,5 +1,6 @@
+numpy
 rasterio
 setuptools
-numpy
-torchvision
+setuptools-scm
 torch
+torchvision

@@ -2,7 +2,8 @@ from setuptools import setup
 
 setup(
     name='geotiff-crop-dataset',
-    version='0.0.1rc6',
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     packages=['geotiff_crop_dataset'],
     url='https://github.com/tayden/pytorch_crop_dataset',
     install_requires=[
