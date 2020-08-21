@@ -6,21 +6,11 @@ Description: A Pytorch Dataloader for tif image files that dynamically crops the
 """
 
 import itertools
-from abc import ABC, abstractmethod
 from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
 import rasterio
-
-
-class Dataset(ABC):
-    @abstractmethod
-    def __len__(self):
-        raise NotImplemented
-
-    @abstractmethod
-    def __getitem__(self, idx):
-        raise NotImplemented
+from torch.utils.data import Dataset
 
 
 class CropDatasetReader(Dataset):

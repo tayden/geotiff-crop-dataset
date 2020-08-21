@@ -8,7 +8,8 @@ setup(
     description='A Pytorch dataset that crops rasterio-readable image files to small sections on the fly.',
     install_requires=[
         'numpy',
-        'rasterio'
+        'rasterio',
+        'torch'
     ],
     license='MIT',
     packages=['geotiff_crop_dataset'],
